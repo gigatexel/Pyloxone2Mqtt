@@ -2,6 +2,7 @@
 ## Install for development
 ```bash
 pip install -r requirements.txt
+create a .env file next to the main.py
 fill out the .env file with the necessary information
 run the main.py
 ```
