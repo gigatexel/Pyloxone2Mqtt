@@ -1,0 +1,10 @@
+aiofiles
+aiohttp
+aiomqtt
+fastapi
+pycryptodome
+pytest
+pytest-asyncio
+uvicorn
+websockets
+python-dotenv
