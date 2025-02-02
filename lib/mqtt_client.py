@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from aiomqtt import Client
+from aiomqtt import Client, MqttError
 
 from .event_bus import EventBus
 
@@ -84,11 +84,18 @@ class MQTTClient:
             if isinstance(message, list):
                 _LOGGER.debug("Publishing batch of %d messages", len(message))
                 for m in message:
-                    _LOGGER.debug("Publishing message to topic %s", m["topic"])
-                    await client.publish(str(m["topic"]), m["payload"])
+                     await self._publish(client, m)
             else:
-                _LOGGER.debug("Publishing message to topic %s", message["topic"])
-                await client.publish(str(message["topic"]), message["payload"])
+                await self._publish(client, message)
+                
+    @staticmethod
+    async def _publish(client: Client, message: dict):
+        """Send a single message with error handling."""
+        try:
+            await client.publish(str(message["topic"]), message["payload"])
+            _LOGGER.debug("Published to %s: %s", message["topic"], message["payload"])
+        except MqttError as e:
+            _LOGGER.error("Failed to publish message to %s: %s", str(message["topic"]), e)
 
     def _get_tls_context(self):
         """Create and return an SSL/TLS context if TLS is enabled."""
