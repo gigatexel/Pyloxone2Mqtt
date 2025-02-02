@@ -37,14 +37,14 @@ class MQTTClient:
         self.password = password
         self.tls = tls
         self.tls_cert = tls_cert
+        self.reconnect_attempts = 0
+        self.max_reconnect_attempts = 10
+        self.reconnect_delay = 10  # seconds
 
     async def connect_and_listen(self):
         """Connect to the MQTT broker, subscribe to topics, and listen for messages with reconnect logic."""
-        reconnect_attempts = 0
-        max_reconnect_attempts = 10
-        reconnect_delay = 10  # seconds
 
-        while reconnect_attempts < max_reconnect_attempts:
+        while self.reconnect_attempts < self.max_reconnect_attempts:
             try:
                 async with Client(
                         self.broker,
@@ -54,10 +54,13 @@ class MQTTClient:
                         tls_context=self._get_tls_context() if self.tls else None,
                 ) as client:
                     # Subscribe to the specified topics
+
                     for topic in self.topics:
                         await client.subscribe(topic)
 
+                    self.reconnect_attempts = 0
                     # Listen for messages and publish them to the event bus
+                    _LOGGER.debug("Connected to MQTT broker %s", self.broker)
                     async for message in client.messages:
                         await self.event_bus.publish(
                             message.topic, {"payload": message.payload.decode()}
@@ -65,11 +68,11 @@ class MQTTClient:
                 break  # Exit the loop if connection is successful
 
             except Exception as e:
-                _LOGGER.error("MQTT connection failed: %s. Reconnecting in %d seconds...", e, reconnect_delay)
-                reconnect_attempts += 1
-                await asyncio.sleep(reconnect_delay)
+                _LOGGER.error("MQTT connection failed: %s. Reconnecting in %d seconds...", e, self.reconnect_delay)
+                self.reconnect_attempts += 1
+                await asyncio.sleep(self.reconnect_delay)
 
-        if reconnect_attempts == max_reconnect_attempts:
+        if self.reconnect_attempts == self.max_reconnect_attempts:
             _LOGGER.error("Max reconnect attempts reached. Could not establish MQTT connection.")
             raise RuntimeError("Max reconnect attempts reached. Exiting application.")
 
@@ -87,7 +90,7 @@ class MQTTClient:
                      await self._publish(client, m)
             else:
                 await self._publish(client, message)
-                
+
     @staticmethod
     async def _publish(client: Client, message: dict):
         """Send a single message with error handling."""
