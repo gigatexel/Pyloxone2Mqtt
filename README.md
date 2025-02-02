@@ -17,11 +17,13 @@ MQTT_BROKER=
 MQTT_USERNAME=
 MQTT_PASSWORD=
 MQTT_PORT=1883
-MQTT_TOPICS="mqtt2loxone/#"  # Do not change this for now
+# Do not change this for now
+MQTT_TOPICS="mqtt2loxone/#"
 
 # Loxone
 WEBSOCKET_URL=
 WEBSOCKET_USERNAME=
 WEBSOCKET_PASSWORD=
+WEBSOCKET_PORT=
 
 ```
