@@ -42,17 +42,16 @@ from .loxone_token import LoxoneToken, LxJsonKeySalt
 from .message import (BaseMessage, BinaryFile, LLResponse, MessageType,
                       TextMessage, parse_message)
 from .websocket_protocol import LoxoneWebsocketClientProtocol
-
-_LOGGER = logging.getLogger(__name__)
 import warnings
 
+_LOGGER = logging.getLogger(__name__)
+# _LOGGER.setLevel("DEBUG")
 # Filter out the specific warning
 warnings.filterwarnings(
     "ignore",
     message="Detected blocking call to load_verify_locations",
     module="httpx._config",
 )
-
 
 def time_elapsed_in_seconds():
     return int(round(time.time()))
@@ -294,94 +293,86 @@ class LoxoneConnection(LoxoneBaseConnection):
     ) -> None:
         await self.close()
 
-    async def start_listening(
-        self, callback: Optional[Callable[[str, Any], Optional[Awaitable[None]]]] = None
-    ) -> None:
-        """Open, and start listening."""
-        if not self.connection:
-            _LOGGER.debug("No existing connection found. Opening a new connection.")
-            self.connection = await self.open(None)
-            # raise exceptions.ConnectionFailure("Connection already exists")
-        else:
-            _LOGGER.debug("Using existing connection.")
-
-        async def keep_alive() -> NoReturn:
-            """Send keep-alive messages to the Miniserver."""
-            try:
-                while True:
-                    await asyncio.sleep(KEEP_ALIVE_PERIOD)
-                    await self._send_text_command(CMD_KEEP_ALIVE, encrypted=False)
-            except Exception as exc:
-                _LOGGER.error(f"Keep-alive task encountered an error: {exc}")
-                raise
-
-        async def check_refresh_token() -> NoReturn:
-            """Check if the token needs to be refreshed."""
-            while True:
-                seconds_to_refresh = min(
-                    self._token.seconds_to_expire() * 0.9, MAX_REFRESH_DELAY
-                )
-                if seconds_to_refresh < 0:
-                    await asyncio.sleep(60 * 60)
-                await asyncio.sleep(seconds_to_refresh)
-                command = f"{CMD_GET_KEY}"
-                _LOGGER.debug(f"COMMAND {command}")
-                # gets a new key for the token refresh
-                old_key = self._key
-                await self._send_text_command(command, encrypted=False)
-                count = 0
-                while True:
-                    await asyncio.sleep(0.1)
-                    if self._key != old_key:
-                        break
-                    count += 1
-                    num_of_wait_iterations = 50  # 0.1 * 50 = 5 seconds
-                    if count >= num_of_wait_iterations:
-                        break
-
-                if self._key != old_key:
-                    new_hash = self._hash_token()
-                    command = f"{CMD_REFRESH_TOKEN}/{new_hash}/{self.username}"
-                    await self._send_text_command(command, encrypted=True)
-
-        await self.connection.send(f"{CMD_KEY_EXCHANGE}{self._session_key.decode()}")
-
-        self._recv_loop = asyncio.ensure_future(
-            self._do_start_listening(callback, self.connection)
-        )
-        # noinspection PyUnreachableCode
-        keep_alive_task = asyncio.ensure_future(keep_alive())
-        # noinspection PyUnreachableCode
-        token_refresh = asyncio.ensure_future(check_refresh_token())
-
-
-        #self._pending_task.append(self._recv_loop)
-        #self._pending_task.append(keep_alive_task)
-        #self._pending_task.append(token_refresh)
+    async def start_listening(self, callback: Optional[Callable[[str, Any], Optional[Awaitable[None]]]] = None) -> None:
+        """Establish a connection and manage keep-alive and token refresh tasks."""
         try:
+            if not self.connection:
+                _LOGGER.debug("No existing connection found. Opening a new connection.")
+                self.connection = await self.open(None)
+                if not self.connection:
+                    raise ConnectionError("Failed to establish connection.")
+            else:
+                _LOGGER.debug("Using existing connection.")
+
+            async def keep_alive() -> NoReturn:
+                """Send periodic keep-alive messages."""
+                while True:
+                    try:
+                        await asyncio.sleep(KEEP_ALIVE_PERIOD)
+                        await self._send_text_command(CMD_KEEP_ALIVE, encrypted=False)
+                    except Exception as exc:
+                        _LOGGER.error("Keep-alive task encountered an error: %s", exc)
+                        raise exc
+
+            async def check_refresh_token() -> NoReturn:
+                """Periodically refresh the authentication token."""
+                while True:
+                    try:
+                        seconds_to_refresh = min(self._token.seconds_to_expire() * 0.9, MAX_REFRESH_DELAY)
+                        if seconds_to_refresh < 0:
+                            await asyncio.sleep(3600)  # Wait 1 hour if token is expired
+                        await asyncio.sleep(seconds_to_refresh)
+
+                        _LOGGER.debug("Requesting new token key")
+                        old_key = self._key
+                        await self._send_text_command(CMD_GET_KEY, encrypted=False)
+
+                        for _ in range(50):  # 5 seconds max wait
+                            await asyncio.sleep(0.1)
+                            if self._key != old_key:
+                                break
+
+                        if self._key != old_key:
+                            new_hash = self._hash_token()
+                            await self._send_text_command(f"{CMD_REFRESH_TOKEN}/{new_hash}/{self.username}",
+                                                          encrypted=True)
+                        else:
+                            _LOGGER.warning("Token refresh failed: key did not change.")
+                    except Exception as exc:
+                        _LOGGER.error("Token refresh encountered an error: %s", exc)
+                        raise exc
+
+            await self.connection.send(f"{CMD_KEY_EXCHANGE}{self._session_key.decode()}")
+
+            self._recv_loop = asyncio.create_task(self._do_start_listening(callback, self.connection))
+            keep_alive_task = asyncio.create_task(keep_alive())
+            token_refresh_task = asyncio.create_task(check_refresh_token())
+
             done, pending = await asyncio.wait(
-                [
-                    self._recv_loop,
-                    keep_alive_task,
-                    token_refresh,
-                ],
+                [self._recv_loop, keep_alive_task, token_refresh_task],
                 return_when=asyncio.FIRST_EXCEPTION,
             )
+
             for task in done:
                 try:
                     await task
-                except websockets.exceptions.ConnectionClosedOK as e:
-                    _LOGGER.debug("Task ConnectionClosedOK received")
-                    # Cancel pending tasks
-                except LoxoneTokenError as e:
-                    raise e
+                except websockets.exceptions.ConnectionClosedOK:
+                    _LOGGER.debug("Connection closed normally.")
                 except Exception as e:
-                    _LOGGER.debug(f"Task {task} raised an exception: {e}")
+                    _LOGGER.error("Task encountered an unexpected exception: %s", e)
                     raise e
-        finally:
-            # Cancel pending tasks
+
             for task in pending:
                 task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    _LOGGER.debug("Cancelled pending task: %s", task)
+                except Exception as e:
+                    _LOGGER.error("Error cancelling task %s: %s", task, e)
+        except Exception as e:
+            _LOGGER.error("Critical error in start_listening: %s", e)
+            raise
 
     async def _do_start_listening(
         self,

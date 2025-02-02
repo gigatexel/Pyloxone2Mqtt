@@ -1,5 +1,8 @@
-from aiomqtt import Client
+import asyncio
 import logging
+
+from aiomqtt import Client
+
 from .event_bus import EventBus
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,26 +39,41 @@ class MQTTClient:
         self.tls_cert = tls_cert
 
     async def connect_and_listen(self):
-        """Connect to the MQTT broker, subscribe to topics, and listen for messages."""
-        async with Client(
-            self.broker,
-            port=8883 if self.tls else 1883,
-            username=self.username,
-            password=self.password,
-            tls_context=self._get_tls_context() if self.tls else None,
-        ) as client:
-            # Subscribe to the specified topics
-            for topic in self.topics:
-                await client.subscribe(topic)
+        """Connect to the MQTT broker, subscribe to topics, and listen for messages with reconnect logic."""
+        reconnect_attempts = 0
+        max_reconnect_attempts = 10
+        reconnect_delay = 10  # seconds
 
-            # Listen for messages and publish them to the event bus
-            async for message in client.messages:
-                # _LOGGER.debug("Publishing message to topic %s - %s", message.topic, message.payload.decode()    )
-                await self.event_bus.publish(
-                  message.topic  , {"payload": message.payload.decode()}
-                )
+        while reconnect_attempts < max_reconnect_attempts:
+            try:
+                async with Client(
+                        self.broker,
+                        port=8883 if self.tls else 1883,
+                        username=self.username,
+                        password=self.password,
+                        tls_context=self._get_tls_context() if self.tls else None,
+                ) as client:
+                    # Subscribe to the specified topics
+                    for topic in self.topics:
+                        await client.subscribe(topic)
 
-    async def publish(self, message: dict):
+                    # Listen for messages and publish them to the event bus
+                    async for message in client.messages:
+                        await self.event_bus.publish(
+                            message.topic, {"payload": message.payload.decode()}
+                        )
+                break  # Exit the loop if connection is successful
+
+            except Exception as e:
+                _LOGGER.error("MQTT connection failed: %s. Reconnecting in %d seconds...", e, reconnect_delay)
+                reconnect_attempts += 1
+                await asyncio.sleep(reconnect_delay)
+
+        if reconnect_attempts == max_reconnect_attempts:
+            _LOGGER.error("Max reconnect attempts reached. Could not establish MQTT connection.")
+            raise RuntimeError("Max reconnect attempts reached. Exiting application.")
+
+    async def publish(self, message: dict|list[dict]):
         """Publish a message to an MQTT topic."""
         async with Client(
             self.broker,
@@ -63,8 +81,14 @@ class MQTTClient:
             password=self.password,
             tls_context=self._get_tls_context() if self.tls else None,
         ) as client:
-            _LOGGER.debug("Publishing message to topic %s", message["topic"])
-            await client.publish(str(message["topic"]), message["payload"])
+            if isinstance(message, list):
+                _LOGGER.debug("Publishing batch of %d messages", len(message))
+                for m in message:
+                    _LOGGER.debug("Publishing message to topic %s", m["topic"])
+                    await client.publish(str(m["topic"]), m["payload"])
+            else:
+                _LOGGER.debug("Publishing message to topic %s", message["topic"])
+                await client.publish(str(message["topic"]), message["payload"])
 
     def _get_tls_context(self):
         """Create and return an SSL/TLS context if TLS is enabled."""

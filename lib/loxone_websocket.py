@@ -1,21 +1,20 @@
 import asyncio
+import logging
 
 import aiofiles
 import websockets
 from aiomqtt import Topic
 
 from .event_bus import EventBus
-import logging
-
 from .pyloxone_api.connection import LoxoneConnection
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel("DEBUG")
 
-class LoxoneWebSocketClient:
-    def __init__(self, uri: str, host:str, port:str, username:str, password:str, event_bus: EventBus):
 
-        self.uri = uri
+class LoxoneWebSocketClient:
+    def __init__(self, host:str, port:str, username:str, password:str, event_bus: EventBus):
+
         self.host = host
         self.port = port
         self.username = username
@@ -26,11 +25,13 @@ class LoxoneWebSocketClient:
         _LOGGER.debug("Publishing message to event bus websocket_in %s", message)
         await self.event_bus.publish(Topic("websocket_in/"), message)
 
-    async def token_safe(self, data) -> None:
+    @staticmethod
+    async def token_safe(data) -> None:
          async with aiofiles.open("token.json", "w") as file:
             await file.write(str(data))
 
-    async def token_load(self) -> None:
+    @staticmethod
+    async def token_load() -> None:
         try:
             async with aiofiles.open("token.json", "r") as file:
                 content = await file.read()
@@ -43,29 +44,31 @@ class LoxoneWebSocketClient:
             return None
 
     async def connect_and_listen(self) -> None:
-        token = await self.token_load()
-        api = LoxoneConnection(
-            host=self.host,
-            port=int(self.port),
-            username=self.username,
-            password=self.password,
-            token=token,
-            token_safe_callback=self.token_safe
-        )
+        reconnect_attempts = 0
+        max_reconnect_attempts = 15
+        reconnect_delay = 10  # seconds
+        while reconnect_attempts < max_reconnect_attempts:
+            try:
+                token = await self.token_load()
+                api = LoxoneConnection(
+                    host=self.host,
+                    port=int(self.port),
+                    username=self.username,
+                    password=self.password,
+                    token=token,
+                    token_safe_callback=self.token_safe
+                )
 
-        listening_task = asyncio.create_task(await api.start_listening(callback=self.publish_to_eventbus))
+                await api.start_listening(callback=self.publish_to_eventbus)
+                break  # Exit the loop if connection is successful
 
-        # pass
-        # while True:
-        #     await asyncio.sleep(1)
-        #     await self.event_bus.publish("websocket_in/", {"uuid":"asdfas"})
+            except Exception as e:
+                _LOGGER.error("Connection failed: %s. Reconnecting in %d seconds...", e, reconnect_delay)
+                reconnect_attempts += 1
+                await asyncio.sleep(reconnect_delay)
 
-        # async with websockets.connect(self.uri) as websocket:
-        #     while True:
-        #         await asyncio.sleep(1)
-        #         # message = await websocket.recv()
-        #         # Publish WebSocket messages to the event bus
-        #         await self.event_bus.publish("websocket_in", message)
+        if reconnect_attempts == max_reconnect_attempts:
+            _LOGGER.error("Max reconnect attempts reached. Could not establish connection.")
 
     async def send(self, message: dict):
         """Send a message to the WebSocket."""
