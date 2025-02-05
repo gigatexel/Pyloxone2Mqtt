@@ -1,25 +1,21 @@
 import asyncio
 import logging
-# from mqtt_client import MQTTClient
-# from websocket_client import WebSocketClient
-# from api_server import create_api_server
-# from event_bus import EventBus
 import os
+
+from dotenv import load_dotenv
 
 from lib.event_bus import EventBus
 from lib.loxone_websocket import LoxoneWebSocketClient
 from lib.mqtt_client import MQTTClient
 
-import os
-from dotenv import load_dotenv
-
 load_dotenv()  # Load .env file
-
 
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
+logging.basicConfig(
+    level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+_LOGGER = logging.getLogger(__name__)
 
 async def main():
     logging.info("Starting application with log level: %s", log_level)
@@ -30,14 +26,16 @@ async def main():
     mqtt_password = os.getenv("MQTT_PASSWORD")
     mqtt_tls = os.getenv("MQTT_TLS", "false").lower() == "true"
     mqtt_tls_cert = os.getenv("MQTT_TLS_CERT")
-    mqtt_topics = os.getenv("MQTT_TOPICS", "#").split(",")  # Default: subscribe to all topics
+    mqtt_topics = os.getenv("MQTT_TOPICS", "mqtt2loxone/#").split(
+        ","
+    )  # Default: subscribe to mqtt2loxone
 
     # Read FastAPI and WebSocket configuration
     # start_fastapi = os.getenv("START_FASTAPI", "true").lower() == "true"
     # start_websocket = os.getenv("START_WEBSOCKET", "true").lower() == "true"
 
     # Loxone WebSocket configuration
-    websocket_url = os.getenv("WEBSOCKET_URL",None)
+    websocket_url = os.getenv("WEBSOCKET_URL", None)
     websocket_port = os.getenv("WEBSOCKET_PORT", "443")  # Default: secure WebSocket
     websocket_username = os.getenv("WEBSOCKET_USERNAME")
     websocket_password = os.getenv("WEBSOCKET_PASSWORD")
@@ -45,22 +43,17 @@ async def main():
     # Instantiate the event bus
     event_bus = EventBus()
 
-    # # Initialize optional components
+    # # Initialize LoxoneWebsocket
     websocket_client = (
         LoxoneWebSocketClient(
-            uri="None",
             host=websocket_url,
             port=websocket_port,
             username=websocket_username,
             password=websocket_password,
             event_bus=event_bus,
         )
-        #if start_websocket
-        #else None
     )
 
-    # # Initialize components
-    # Initialize MQTT client with authentication and TLS
     # Initialize MQTT client
     mqtt_client = MQTTClient(
         broker=mqtt_broker,
@@ -72,36 +65,13 @@ async def main():
         tls_cert=mqtt_tls_cert,
     )
 
-    if websocket_client:
-        pass
-       #await event_bus.subscribe("websocket_out", websocket_client.send)
-
-    # websocket_client = WebSocketClient(uri="ws://websocket.example.com", event_bus=event_bus)
-    # app = create_api_server(event_bus)
-    #
-    # # Subscribe components to the event bus
-    #async def subscribe(message:dict):
-    #    print("Got message", message)
-    #await subscribe("#", mqtt_client.publish)
-    # await subscribe("#", mqtt_client.publish)
-    # async def subscribe(message:dict):
-    #     await asyncio.sleep(0)
-    #     print("Got message", message)
-
+    # Standard subscriptions
     await event_bus.subscribe("pyloxone", websocket_client.send)
     await event_bus.subscribe("loxone2mqtt", mqtt_client.publish)
-
-
-    # # Start tasks
-    #mqtt_task = asyncio.create_task(mqtt_client.connect_and_listen())
-    # websocket_task = asyncio.create_task(websocket_client.connect_and_listen())
-    #event_bus_task = asyncio.create_task(event_bus.run())
     ###
     # # Start FastAPI as a task
     # api_task = asyncio.create_task(uvicorn.run(app, host="0.0.0.0", port=8000))
     #    # Start tasks
-    # Start tasks
-
     # await event_bus.subscribe("mqtt_out", mqtt_client.publish)
 
     tasks = [
@@ -109,10 +79,12 @@ async def main():
         asyncio.create_task(websocket_client.connect_and_listen()),
         asyncio.create_task(event_bus.run()),
     ]
-
-    # await asyncio.gather(mqtt_task, event_bus_task) #, websocket_task, event_bus_task, api_task)
-
-    await asyncio.gather(*tasks)
+    try:
+        await asyncio.gather(*tasks)
+    except RuntimeError as e:
+        _LOGGER.error("Application error: %s", e)
+        # Optionally cleanup here
+        return
 
 if __name__ == "__main__":
     asyncio.run(main())
