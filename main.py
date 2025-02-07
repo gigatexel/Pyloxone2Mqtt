@@ -67,7 +67,7 @@ async def main():
 
     # Standard subscriptions
     await event_bus.subscribe("pyloxone", websocket_client.send)
-    await event_bus.subscribe("loxone2mqtt", mqtt_client.publish)
+    await event_bus.subscribe("loxone2mqtt", mqtt_client.publish_batch)
     ###
     # # Start FastAPI as a task
     # api_task = asyncio.create_task(uvicorn.run(app, host="0.0.0.0", port=8000))
