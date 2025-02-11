@@ -8,3 +8,4 @@ pytest-asyncio
 uvicorn
 websockets
 python-dotenv
+gmqtt
