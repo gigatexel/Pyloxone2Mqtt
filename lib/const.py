@@ -46,26 +46,47 @@ LOX_MQTT_TEMPLATES = {
         "qos": 2
     },
     "Jalousie": {
-    "dev": {
-        "ids": "dev_id",
-        "mf": "Loxone",
-        "mdl": "Jalousie",
-        "suggested_area": "",
-    },
-    "o": {"name": "Loxone2MQTT"},
-    "cmps": {
-        "id1": {
-            "p": "cover",
-            "payload_open": "1.0",
-            "payload_close": "0.0",
-            "position_open": "100",
-            "position_closed": "0",
-            "command_template": "{{ 'open' if value == '1.0' else 'close' }}",
-            "json_attributes_template": "{{ value_json | tojson }}",
-            "retain": True
+        "dev": {
+            "ids": "dev_id",
+            "mf": "Loxone",
+            "mdl": "Jalousie",
+            "suggested_area": "",
+        },
+        "o": {"name": "Loxone2MQTT"},
+        "cmps": {
+            "id1": {
+                "p": "cover",
+                "payload_open": "1.0",
+                "payload_close": "0.0",
+                "position_open": "100",
+                "position_closed": "0",
+                "command_template": "{{ 'open' if value == '1.0' else 'close' }}",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            }
+        },
+        "qos": 2
+        },
+    "Gate": {
+        "dev": {
+            "ids": "dev_id",
+            "mf": "Loxone",
+            "mdl": "Gate",
+            "suggested_area": "",
+        },
+        "o": {"name": "Loxone2MQTT"},
+        "cmps": {
+            "id1": {
+                "p": "cover",
+                "payload_open": "1.0",
+                "payload_close": "0.0",
+                "position_open": "100",
+                "position_closed": "0",
+                "command_template": "{{ 'open' if value == '1.0' else 'close' }}",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            }
+        },
+        "qos": 2
         }
-    },
-    "qos": 2
-    }
-
 }
