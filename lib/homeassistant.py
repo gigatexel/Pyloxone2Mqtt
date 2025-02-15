@@ -78,35 +78,105 @@ class HomeAssistant:
                     # Check if this Loxone Control is already supported
                     if value["type"] in LOX_MQTT_TEMPLATES:
                         # Fill out all fields in the template
-                        if value["type"] in ["Switch", "PresenceDetector"]:
-                            topic = f"device/{key}/config"
-                            attributes_topic = f"device/{key}/attributes"
+                        match value["type"]:
+                            case "Switch":
+                                topic = f"device/{key}/config"
+                                attributes_topic = f"device/{key}/attributes"
 
-                            payload = copy.deepcopy(LOX_MQTT_TEMPLATES[value["type"]])
-                            payload["dev"].update({
-                                "ids": key,
-                                "name": value["name"],
-                                "suggested_area": self.LoxAPP3["rooms"][value["room"]]["name"]
-                            })
-                            payload["cmps"]["id1"].update({
-                                "unique_id": key,
-                                "name": value["name"],
-                                "state_topic": f"loxone2mqtt/{value['states']['active']}",
-                                "command_topic": f"mqtt2loxone/{value['states']['active']}",
-                                "json_attributes_topic": f"homeassistant/{attributes_topic}"
-                            })
+                                payload = copy.deepcopy(LOX_MQTT_TEMPLATES[value["type"]])
+                                payload["dev"].update({
+                                    "ids": key,
+                                    "name": value["name"],
+                                    "suggested_area": self.LoxAPP3["rooms"][value["room"]]["name"]
+                                })
+                                payload["cmps"]["id1"].update({
+                                    "unique_id": key,
+                                    "name": value["name"],
+                                    "state_topic": f"loxone2mqtt/{value['states']['active']}",
+                                    #to configure
+                                    "command_topic": f"mqtt2loxone/{value['states']['active']}",
+                                    "json_attributes_topic": f"homeassistant/{attributes_topic}"
+                                })
 
-                            attributes_payload = {
-                                "device_id": key,
-                                "state_id": value["states"]["active"],
-                                "room": self.LoxAPP3["rooms"][value["room"]]["name"],
-                                "cat": self.LoxAPP3["cats"][value["cat"]]["name"],
-                                "device_type": "Switch"
-                            }
+                                attributes_payload = {
+                                    "device_id": key,
+                                    "state_id": value["states"]["active"],
+                                    "room": self.LoxAPP3["rooms"][value["room"]]["name"],
+                                    "cat": self.LoxAPP3["cats"][value["cat"]]["name"],
+                                    "device_type": "Switch"
+                                }
+                            case "PresenceDetector":
+                                topic = f"device/{key}/config"
+                                attributes_topic = f"device/{key}/attributes"
 
-                            # Collect messages instead of publishing immediately
-                            publish_queue.append({"topic": topic, "payload": json.dumps(payload)})
-                            publish_queue.append({"topic": attributes_topic, "payload": json.dumps(attributes_payload)})
+                                payload = copy.deepcopy(LOX_MQTT_TEMPLATES[value["type"]])
+                                payload["dev"].update({
+                                    "ids": key,
+                                    "name": value["name"],
+                                    "suggested_area": self.LoxAPP3["rooms"][value["room"]]["name"]
+                                })
+                                payload["cmps"]["id1"].update({
+                                    "unique_id": key,
+                                    "name": value["name"],
+                                    "state_topic": f"loxone2mqtt/{value['states']['active']}",
+                                    #to configure
+                                    "command_topic": f"mqtt2loxone/{value['states']['active']}",
+                                    "json_attributes_topic": f"homeassistant/{attributes_topic}"
+                                })
+
+                                attributes_payload = {
+                                    "device_id": key,
+                                    "state_id": value["states"]["active"],
+                                    "room": self.LoxAPP3["rooms"][value["room"]]["name"],
+                                    "cat": self.LoxAPP3["cats"][value["cat"]]["name"],
+                                    "device_type": "Switch"
+                                }
+                            case "Jalousie":
+                                topic = f"device/{key}/config"
+                                attributes_topic = f"device/{key}/attributes"
+                                dev_class = {0: "blind", 1: "shutter", 2: "curtain", 4: "curtain", 5: "curtain", 6: "awning"}.get(value["details"]["animation"], "unknown")
+                                payload = copy.deepcopy(LOX_MQTT_TEMPLATES[value["type"]])
+                                payload["dev"].update({
+                                    "ids": key,
+                                    "name": value["name"],
+                                    "suggested_area": self.LoxAPP3["rooms"][value["room"]]["name"]
+                                })
+                                payload["cmps"]["id1"].update({
+                                    "unique_id": key,
+                                    "name": value["name"],
+                                    "position_topic": f"loxone2mqtt/{value['states']['position']}",
+                                    "position_open": 0,
+                                    "position_closed": 1,
+                                    "command_topic": f"mqtt2loxone/{value['states']['up']}",
+                                    "set_position_topic": f"mqtt2loxone/{value['states']['up']}",
+                                    "json_attributes_topic": f"homeassistant/{attributes_topic}",
+                                    "device_class": dev_class
+                                })
+                                if dev_class == "blinds":
+                                    payload["cmps"]["id1"].update({
+                                        "tilt_command_topic": f"mqtt2loxone/{value['states']['up']}",
+                                        "tilt_status_topic": f"loxone2mqtt/{value['states']['position']}",
+                                        "tilt_min": 0,
+                                        "tilt_max": 100,
+                                        "tilt_closed_value": 0,
+                                        "tilt_opened_value": 100
+                                    })
+
+                                attributes_payload = {
+                                    "device_id": key,
+                                    "state_id": value["states"]["position"],
+                                    "room": self.LoxAPP3["rooms"][value["room"]]["name"],
+                                    "cat": self.LoxAPP3["cats"][value["cat"]]["name"],
+                                    "device_type": "Jalousie",
+                                    "device_class": dev_class
+
+                                }
+
+
+
+                        # Collect messages instead of publishing immediately
+                        publish_queue.append({"topic": topic, "payload": json.dumps(payload)})
+                        publish_queue.append({"topic": attributes_topic, "payload": json.dumps(attributes_payload)})
 
         # Publish all collected messages at once
         if publish_queue:
