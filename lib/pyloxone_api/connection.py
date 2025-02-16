@@ -118,6 +118,8 @@ class LoxoneBaseConnection:
 
         self._salt_has_expired: bool = False
         self._salt_time_stamp: int = 0
+        self._salt_used_count = 0
+        self._salt = ""
 
         self._visual_hash = None
         self._message_queue = Queue(maxsize=1)
@@ -379,7 +381,10 @@ class LoxoneConnection(LoxoneBaseConnection):
         callback: Optional[Callable[[Any], Optional[Awaitable[None]]]],
         connection: LoxoneWebsocketClientProtocol,
     ) -> None:
-        # with contextlib.suppress(ConnectionClosed):
+        # Publish the LoxAPP3 file
+        awaitable = callback({"LoxAPP3": self.structure_file})
+        if awaitable:
+            await awaitable
 
         while True:
             try:
