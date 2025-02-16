@@ -1,3 +1,4 @@
+
 """
 Component to create an interface to the Loxone Miniserver.
 
