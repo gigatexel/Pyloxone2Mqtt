@@ -70,19 +70,13 @@ async def main():
 
     # Initialize HomeAssistant
     homeassistant = HomeAssistant(
-        broker=mqtt_broker,
         event_bus=event_bus,
-        topics=["loxone2mqtt/Lox3APP"],
-        username=mqtt_username,
-        password=mqtt_password,
-        port=mqtt_port,
-        tls=mqtt_tls,
-        tls_cert=mqtt_tls_cert,
     )    
 
     # Standard subscriptions
     await event_bus.subscribe("pyloxone", websocket_client.send)
     await event_bus.subscribe("loxone2mqtt", mqtt_client.publish_batch)
+    await event_bus.subscribe("homeassistant", mqtt_client.publish_batch)
     #subscribe to loxone2mqtt topic so the HA MQTT AutoDiscovery can be started
     await event_bus.subscribe("loxone2mqtt", homeassistant.generate_ha_mqtt_autodiscovery)
     ###

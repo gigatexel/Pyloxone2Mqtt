@@ -88,5 +88,22 @@ LOX_MQTT_TEMPLATES = {
             }
         },
         "qos": 2
+#         },
+#    "LightControllerV2": {
+#         "dev": {
+#             "ids": "dev_id",
+#             "mf": "Loxone",
+#             "mdl": "LightControllerV2",
+#             "suggested_area": "",
+#         },
+#         "o": {"name": "Loxone2MQTT"},
+#         "cmps": {
+#             "id1": {
+#                 "p": "cover",
+#                 "json_attributes_template": "{{ value_json | tojson }}",
+#                 "retain": True
+#             }
+#         },
+#         "qos": 2
         }
 }
