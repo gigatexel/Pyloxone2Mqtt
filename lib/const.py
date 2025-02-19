@@ -1,3 +1,5 @@
+cfmt = r"""(%(?:(?:[-+0 #]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|l|ll|w|I|I32|I64)?[cCdiouxXeEfgGaAnpsSZ])|%%)"""
+
 LOX_MQTT_TEMPLATES = {
     "Switch" : {
         "dev": {
@@ -105,5 +107,23 @@ LOX_MQTT_TEMPLATES = {
 #             }
 #         },
 #         "qos": 2
-        }
+        },
+    "InfoOnlyAnalog" : {
+        "dev": {
+            "ids": "dev_id",
+            "mf": "Loxone",
+            "mdl": "InfoOnlyAnalog",
+            "suggested_area": "",
+        },
+        "o": {"name": "Loxone2MQTT"},
+        "cmps": {
+            "id1": {
+                "p": "sensor",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "device_class": "switch",
+                "retain": True
+            },
+        },
+        "qos": 2
+    }        
 }

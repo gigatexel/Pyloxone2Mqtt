@@ -1,10 +1,11 @@
 import logging
 import json
+import time
 
 from aiomqtt import Topic
 from .event_bus import EventBus
 from .const import LOX_MQTT_TEMPLATES
-from .handlers import switch_handler, presence_detector_handler, jalousie_handler, gate_handler, lightcontrollerv2_handler
+from .handlers import switch_handler, presence_detector_handler, jalousie_handler, gate_handler, lightcontrollerv2_handler, infoonlyanalog_handler
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -19,7 +20,9 @@ class HomeAssistant:
         self.LoxAPP3 = ""
 
     async def generate_ha_mqtt_autodiscovery(self, messages: list[dict]):
-        publish_queue = []
+        publish_queue_devices = []
+        publish_queue_attrbibutes = []
+
 
         for message in messages:
             if message["topic"].matches("loxone2mqtt/LoxAPP3"):
@@ -30,13 +33,19 @@ class HomeAssistant:
                         handler = self._get_handler(value["type"])
                         if handler:
                             topic, attributes_topic, payload, attributes_payload = handler(key, value, self.LoxAPP3)
-                            publish_queue.append({"topic": Topic(f"homeassistant/{attributes_topic}"), "payload": json.dumps(attributes_payload)})  
-                            publish_queue.append({"topic": Topic(f"homeassistant/{topic}"), "payload": json.dumps(payload)})  
+                            publish_queue_devices.append({"topic": Topic(f"homeassistant/{attributes_topic}"), "payload": json.dumps(attributes_payload)})  
+                            publish_queue_attrbibutes.append({"topic": Topic(f"homeassistant/{topic}"), "payload": json.dumps(payload)})  
 
-
+        #
+        # to fix: this does not work, as the attributes are not published before the device is discovered
+        # temporary work around: launch code twice, so on reload the attributes are already existing
+        #
+        # Publish attributes first, so they are available when the device is discovered
+        if publish_queue_attrbibutes:
+            await self.event_bus.publish_batch(publish_queue_attrbibutes)
         # Publish all collected messages at once
-        if publish_queue:
-            await self.event_bus.publish_batch(publish_queue)
+        if publish_queue_devices:
+            await self.event_bus.publish_batch(publish_queue_devices)
 
     def _get_handler(self, control_type: str):
         handlers = {
@@ -45,6 +54,7 @@ class HomeAssistant:
             "Jalousie": jalousie_handler.handle_jalousie,
             "Gate": gate_handler.handle_gate,
             "LightControllerV2": lightcontrollerv2_handler.handle_lightcontrollerv2,
+            "InfoOnlyAnalog": infoonlyanalog_handler.handle_infoonlyanalog,
         }
         return handlers.get(control_type)
 
