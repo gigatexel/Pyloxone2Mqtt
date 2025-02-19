@@ -124,7 +124,7 @@ def handle_infoonlyanalog(key, value, LoxAPP3):
         "Loxone State ID": value["states"]["value"],
         "Loxone Room": LoxAPP3["rooms"][value["room"]]["name"],
         "Loxone Category": LoxAPP3["cats"][value["cat"]]["name"],
-        "Loxone Control": "Sensor",
+        "Loxone Control": "InfoOnlyDigital",
         "HA Device Class": device_class,
         "HA State Class": state_class
     }
