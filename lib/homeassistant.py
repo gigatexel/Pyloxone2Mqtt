@@ -5,7 +5,7 @@ import time
 from aiomqtt import Topic
 from .event_bus import EventBus
 from .const import LOX_MQTT_TEMPLATES
-from .handlers import switch_handler, presence_detector_handler, jalousie_handler, gate_handler, lightcontrollerv2_handler, infoonlyanalog_handler, infoonlydigital_handler
+from .handlers import switch_handler, presence_detector_handler, jalousie_handler, gate_handler, lightcontrollerv2_handler, infoonlyanalog_handler, infoonlydigital_handler, energymanager2_handler
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -56,6 +56,7 @@ class HomeAssistant:
             "LightControllerV2": lightcontrollerv2_handler.handle_lightcontrollerv2,
             "InfoOnlyAnalog": infoonlyanalog_handler.handle_infoonlyanalog,
             "InfoOnlyDigital": infoonlydigital_handler.handle_infoonlydigital,
+            "EnergyManager2": energymanager2_handler.handle_energymanager2,
         }
         return handlers.get(control_type)
 

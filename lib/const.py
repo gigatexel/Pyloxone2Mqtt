@@ -109,7 +109,6 @@ LOX_MQTT_TEMPLATES = {
             "id1": {
                 "p": "sensor",
                 "json_attributes_template": "{{ value_json | tojson }}",
-                "device_class": "switch",
                 "retain": True
             },
         },
@@ -131,5 +130,45 @@ LOX_MQTT_TEMPLATES = {
             },
         },
         "qos": 2
-    }            
+    },
+    "EnergyManager2" : {
+        "dev": {
+            "mf": "Loxone",
+            "mdl": "EnergyManager2",
+        },
+        "o": {"name": "Loxone2MQTT"},
+        "cmps": {
+            "Gpwr": {
+                "p": "sensor",
+                "name": "Grid Power",
+                "suggested_display_precision": 3,
+                "native_unit_of_measurement": "kW",
+                "state_class": "measurement",
+                "device_class": "power",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },
+            "Spwr": {
+                "p": "sensor",
+                "name": "Storage Power",
+                "suggested_display_precision": 3,
+                "native_unit_of_measurement": "kW",
+                "state_class": "measurement",
+                "device_class": "power",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },       
+            "Ppwr": {
+                "p": "sensor",
+                "name": "Production Power",
+                "suggested_display_precision": 3,
+                "native_unit_of_measurement": "kW",
+                "state_class": "measurement",
+                "device_class": "power",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },                  
+        },
+        "qos": 2
+    }                        
 }
