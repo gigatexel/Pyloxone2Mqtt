@@ -33,4 +33,4 @@ def handle_gate(key, value, LoxAPP3):
         "HA Device Class": dev_class
     }
 
-    return topic, attributes_topic, payload, attributes_payload
+    return topic, payload, {attributes_topic: attributes_payload}

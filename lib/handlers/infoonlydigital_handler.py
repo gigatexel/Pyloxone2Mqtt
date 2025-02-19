@@ -34,4 +34,4 @@ def handle_infoonlydigital(key, value, LoxAPP3):
         }) 
 
         
-    return topic, attributes_topic, payload, attributes_payload
+    return topic, payload, {attributes_topic: attributes_payload}

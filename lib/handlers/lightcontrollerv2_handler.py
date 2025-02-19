@@ -38,4 +38,4 @@ def handle_lightcontrollerv2(key, value, LoxAPP3):
         "HA Device Class": ""
     }
 
-    return topic, attributes_topic, payload, attributes_payload
+    return topic, payload, {attributes_topic: attributes_payload}

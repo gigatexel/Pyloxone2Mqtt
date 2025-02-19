@@ -27,4 +27,4 @@ def handle_presence_detector(key, value, LoxAPP3):
         "Loxone Control": "PresenceDetector"
     }
 
-    return topic, attributes_topic, payload, attributes_payload
+    return topic, payload, {attributes_topic: attributes_payload}

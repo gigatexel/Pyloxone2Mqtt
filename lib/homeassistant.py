@@ -21,7 +21,7 @@ class HomeAssistant:
 
     async def generate_ha_mqtt_autodiscovery(self, messages: list[dict]):
         publish_queue_devices = []
-        publish_queue_attrbibutes = []
+        publish_queue_attributes = []
 
 
         for message in messages:
@@ -32,17 +32,18 @@ class HomeAssistant:
                     if value["type"] in LOX_MQTT_TEMPLATES:
                         handler = self._get_handler(value["type"])
                         if handler:
-                            topic, attributes_topic, payload, attributes_payload = handler(key, value, self.LoxAPP3)
-                            publish_queue_devices.append({"topic": Topic(f"homeassistant/{attributes_topic}"), "payload": json.dumps(attributes_payload)})  
-                            publish_queue_attrbibutes.append({"topic": Topic(f"homeassistant/{topic}"), "payload": json.dumps(payload)})  
+                            topic, payload, attributes = handler(key, value, self.LoxAPP3)
+                            publish_queue_devices.append({"topic": Topic(f"homeassistant/{topic}"), "payload": json.dumps(payload)})  
+                            for top, attr in attributes.items():
+                                publish_queue_attributes.append({"topic": Topic(f"homeassistant/{top}"), "payload": json.dumps(attr)})  
 
         #
         # to fix: this does not work, as the attributes are not published before the device is discovered
         # temporary work around: launch code twice, so on reload the attributes are already existing
         #
         # Publish attributes first, so they are available when the device is discovered
-        if publish_queue_attrbibutes:
-            await self.event_bus.publish_batch(publish_queue_attrbibutes)
+        if publish_queue_attributes:
+            await self.event_bus.publish_batch(publish_queue_attributes)
         # Publish all collected messages at once
         if publish_queue_devices:
             await self.event_bus.publish_batch(publish_queue_devices)

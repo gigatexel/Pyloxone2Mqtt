@@ -142,7 +142,7 @@ LOX_MQTT_TEMPLATES = {
                 "p": "sensor",
                 "name": "Grid Power",
                 "suggested_display_precision": 3,
-                "native_unit_of_measurement": "kW",
+                "unit_of_measurement": "kW",
                 "state_class": "measurement",
                 "device_class": "power",
                 "json_attributes_template": "{{ value_json | tojson }}",
@@ -152,7 +152,7 @@ LOX_MQTT_TEMPLATES = {
                 "p": "sensor",
                 "name": "Storage Power",
                 "suggested_display_precision": 3,
-                "native_unit_of_measurement": "kW",
+                "unit_of_measurement": "kW",
                 "state_class": "measurement",
                 "device_class": "power",
                 "json_attributes_template": "{{ value_json | tojson }}",
@@ -162,12 +162,42 @@ LOX_MQTT_TEMPLATES = {
                 "p": "sensor",
                 "name": "Production Power",
                 "suggested_display_precision": 3,
-                "native_unit_of_measurement": "kW",
+                "unit_of_measurement": "kW",
                 "state_class": "measurement",
                 "device_class": "power",
                 "json_attributes_template": "{{ value_json | tojson }}",
                 "retain": True
-            },                  
+            },   
+            "Ssoc": {
+                "p": "sensor",
+                "name": "Storage State of Charge",
+                "suggested_display_precision": 2,
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
+                "device_class": "battery",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },
+            "MinSoc": {
+                "p": "sensor",
+                "name": "Minimum Storage State of Charge",
+                "suggested_display_precision": 2,
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
+                "device_class": "battery",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },       
+            "MaxSpwr": {
+                "p": "sensor",
+                "name": "Max Storage Power",
+                "suggested_display_precision": 3,
+                "unit_of_measurement": "kW",
+                "state_class": "measurement",
+                "device_class": "power",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },                                                          
         },
         "qos": 2
     }                        

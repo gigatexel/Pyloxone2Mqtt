@@ -129,4 +129,4 @@ def handle_infoonlyanalog(key, value, LoxAPP3):
         "HA State Class": state_class
     }
 
-    return topic, attributes_topic, payload, attributes_payload
+    return topic, payload, {attributes_topic: attributes_payload}
