@@ -3,10 +3,8 @@ cfmt = r"""(%(?:(?:[-+0 #]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|l|ll|w|I|I32|I6
 LOX_MQTT_TEMPLATES = {
     "Switch" : {
         "dev": {
-            "ids": "dev_id",
             "mf": "Loxone",
             "mdl": "Switch",
-            "suggested_area": "",
         },
         "o": {"name": "Loxone2MQTT"},
         "cmps": {
@@ -26,10 +24,8 @@ LOX_MQTT_TEMPLATES = {
     },
     "PresenceDetector" : {
         "dev": {
-            "ids": "dev_id",
             "mf": "Loxone",
             "mdl": "Presence Detector",
-            "suggested_area": "",
         },
         "o": {"name": "Loxone2MQTT"},
         "cmps": {
@@ -49,10 +45,8 @@ LOX_MQTT_TEMPLATES = {
     },
     "Jalousie": {
         "dev": {
-            "ids": "dev_id",
             "mf": "Loxone",
             "mdl": "Jalousie",
-            "suggested_area": "",
         },
         "o": {"name": "Loxone2MQTT"},
         "cmps": {
@@ -71,10 +65,8 @@ LOX_MQTT_TEMPLATES = {
         },
     "Gate": {
         "dev": {
-            "ids": "dev_id",
             "mf": "Loxone",
             "mdl": "Gate",
-            "suggested_area": "",
         },
         "o": {"name": "Loxone2MQTT"},
         "cmps": {
@@ -86,6 +78,7 @@ LOX_MQTT_TEMPLATES = {
                 "position_closed": "0",
                 "command_template": "{{ 'open' if value == '1.0' else 'close' }}",
                 "json_attributes_template": "{{ value_json | tojson }}",
+                "device_class": None,
                 "retain": True
             }
         },
@@ -93,10 +86,8 @@ LOX_MQTT_TEMPLATES = {
 #         },
 #    "LightControllerV2": {
 #         "dev": {
-#             "ids": "dev_id",
 #             "mf": "Loxone",
 #             "mdl": "LightControllerV2",
-#             "suggested_area": "",
 #         },
 #         "o": {"name": "Loxone2MQTT"},
 #         "cmps": {
@@ -110,10 +101,8 @@ LOX_MQTT_TEMPLATES = {
         },
     "InfoOnlyAnalog" : {
         "dev": {
-            "ids": "dev_id",
             "mf": "Loxone",
             "mdl": "InfoOnlyAnalog",
-            "suggested_area": "",
         },
         "o": {"name": "Loxone2MQTT"},
         "cmps": {
@@ -125,5 +114,22 @@ LOX_MQTT_TEMPLATES = {
             },
         },
         "qos": 2
-    }        
+    },
+    "InfoOnlyDigital" : {
+        "dev": {
+            "mf": "Loxone",
+            "mdl": "InfoOnlyDigital",
+        },
+        "o": {"name": "Loxone2MQTT"},
+        "cmps": {
+            "id1": {
+                "p": "binary_sensor",
+                "payload_off": "0.0",
+                "payload_on": "1.0",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "retain": True
+            },
+        },
+        "qos": 2
+    }            
 }
