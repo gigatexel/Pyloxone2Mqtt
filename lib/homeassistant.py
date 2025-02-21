@@ -18,11 +18,12 @@ class HomeAssistant:
     ):
         self.event_bus = event_bus
         self.LoxAPP3 = ""
+        self.controls_dyn_sensors = ["EnergyManager2"]
+        self.dev_add_sensors = {}
 
     async def generate_ha_mqtt_autodiscovery(self, messages: list[dict]):
         publish_queue_devices = []
         publish_queue_attributes = []
-
 
         for message in messages:
             if message["topic"].matches("loxone2mqtt/LoxAPP3"):
@@ -36,7 +37,22 @@ class HomeAssistant:
                             publish_queue_devices.append({"topic": Topic(f"homeassistant/{topic}"), "payload": json.dumps(payload)})  
                             for top, attr in attributes.items():
                                 publish_queue_attributes.append({"topic": Topic(f"homeassistant/{top}"), "payload": json.dumps(attr)})  
-
+                            # check if current device causes additional devices to be created
+                            # if so, store the topic & payload of the causing device
+                            if value["type"] in self.controls_dyn_sensors:
+                                _LOGGER.debug(f"Multi: {value['type']}")
+                                self.dev_add_sensors[value["states"]["loads"]] = {}
+                                self.dev_add_sensors[value["states"]["loads"]]["topic"] = topic
+                                self.dev_add_sensors[value["states"]["loads"]]["payload"] = payload
+                                self.dev_add_sensors[value["states"]["loads"]]["type"] = value["type"]
+            # Are we recieving a topic that contains additional sensors?
+            elif message["topic"].value.split('/')[-1] in self.dev_add_sensors:
+                _LOGGER.debug(f"Loads found: {message['topic'].value.split('/')[-1]} - {(message['payload'])}")
+                handler = self._get_handler(self.dev_add_sensors[message["topic"].value.split('/')[-1]]["type"])
+                if handler:
+                    _LOGGER.debug(handler)
+                    topic, payload = handler(additional_sensors = self.dev_add_sensors[message["topic"].value.split('/')[-1]], payload = message["payload"])
+                    publish_queue_devices.append({"topic": Topic(f"homeassistant/{topic}"), "payload": json.dumps(payload)})  
         #
         # to fix: this does not work, as the attributes are not published before the device is discovered
         # temporary work around: launch code twice, so on reload the attributes are already existing
