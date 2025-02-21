@@ -179,25 +179,32 @@ LOX_MQTT_TEMPLATES = {
                 "retain": True
             },
             "MinSoc": {
-                "p": "sensor",
+                "p": "number",
                 "name": "Minimum Storage State of Charge",
-                "suggested_display_precision": 2,
+                "step": 1,
                 "unit_of_measurement": "%",
-                "state_class": "measurement",
+                "mode": "box",
                 "device_class": "battery",
                 "json_attributes_template": "{{ value_json | tojson }}",
                 "retain": True
             },       
             "MaxSpwr": {
-                "p": "sensor",
+                "p": "number",
                 "name": "Max Storage Power",
                 "suggested_display_precision": 3,
                 "unit_of_measurement": "kW",
-                "state_class": "measurement",
+                "mode": "box",
                 "device_class": "power",
                 "json_attributes_template": "{{ value_json | tojson }}",
                 "retain": True
-            },                                                          
+            },
+            "manage": {
+                "p": "button",
+                "name": "Manage",
+                "json_attributes_template": "{{ value_json | tojson }}",
+                "payload_press": "",
+                "retain": True
+            },                                                             
         },
         "qos": 2
     }                        
